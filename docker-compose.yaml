@@ -1,0 +1,27 @@
+services:
+  scraper:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: news-curator
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONIOENCODING=utf-8
+      # AI APIs (optional - for summarization)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Email (optional)
+      - GMAIL_EMAIL=${GMAIL_EMAIL:-}
+      - GMAIL_PASSWORD=${GMAIL_PASSWORD:-}
+      # bkend.ai (optional)
+      - BKEND_API_KEY=${BKEND_API_KEY:-}
+      - BKEND_SERVICE_URL=${BKEND_SERVICE_URL:-}
+    volumes:
+      # Mount examples for easy editing
+      - ./examples:/app/examples:ro
+      # Mount output directory for results
+      - ./output:/app/output
+    # Run with specific profile
+    # Usage: docker-compose run --rm scraper
+    # Or with different profile: docker-compose run --rm scraper python main.py --profile /app/examples/hospitality.yaml --no-history
+    command: ["python", "main.py", "--profile", "/app/examples/ai-tech.yaml", "--no-history"]

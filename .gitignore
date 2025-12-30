@@ -1,0 +1,36 @@
+# Environment
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Output
+output/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (user configs may contain sensitive data)
+config/*.yaml
+!config/.gitkeep
+
+# Node (frontend)
+node_modules/
+dist/
+.next/

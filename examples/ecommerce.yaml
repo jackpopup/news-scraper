@@ -1,0 +1,237 @@
+# E-commerce & Retail Industry Profile
+# Template for retail, marketplaces, and logistics companies
+
+profile:
+  name: "E-commerce & Retail"
+  description: "News curator for e-commerce, retail platforms, and logistics"
+  language: ko
+  region: KR
+
+# ============================================
+# Company Tiers
+# ============================================
+companies:
+  tier_0:
+    label: "Our Company"
+    score: 80
+    keywords:
+      - "YourCompany"
+      - "우리회사"
+
+  tier_1:
+    label: "Major E-commerce"
+    score: 60
+    keywords:
+      - "쿠팡"
+      - "Coupang"
+      - "네이버쇼핑"
+      - "신세계"
+      - "SSG"
+
+  tier_2:
+    label: "Fashion/Vertical Platforms"
+    score: 55
+    keywords:
+      - "무신사"
+      - "Musinsa"
+      - "지그재그"
+      - "에이블리"
+      - "마켓컬리"
+      - "오늘의집"
+
+  tier_3:
+    label: "Global E-commerce"
+    score: 50
+    keywords:
+      - "Amazon"
+      - "아마존"
+      - "알리바바"
+      - "Alibaba"
+      - "테무"
+      - "Temu"
+      - "쉬인"
+      - "Shein"
+
+  tier_4:
+    label: "Logistics/Fulfillment"
+    score: 45
+    keywords:
+      - "CJ대한통운"
+      - "한진"
+      - "롯데택배"
+      - "쿠팡로지스틱스"
+      - "풀필먼트"
+
+  tier_5:
+    label: "Payment/Fintech"
+    score: 40
+    keywords:
+      - "토스"
+      - "카카오페이"
+      - "네이버페이"
+      - "BNPL"
+
+# ============================================
+# Keyword Categories
+# ============================================
+keywords:
+  investment:
+    label: "Investment/M&A"
+    score: 45
+    terms:
+      - "투자유치"
+      - "시리즈"
+      - "인수"
+      - "합병"
+      - "M&A"
+      - "IPO"
+
+  market_data:
+    label: "Market Data"
+    score: 40
+    terms:
+      - "거래액"
+      - "GMV"
+      - "매출"
+      - "성장률"
+      - "MAU"
+      - "전환율"
+
+  logistics:
+    label: "Logistics"
+    score: 35
+    terms:
+      - "배송"
+      - "풀필먼트"
+      - "물류센터"
+      - "새벽배송"
+      - "당일배송"
+      - "로켓배송"
+
+  regulation:
+    label: "Regulation"
+    score: 40
+    terms:
+      - "규제"
+      - "공정거래"
+      - "플랫폼법"
+      - "대규모유통업법"
+
+  cross_border:
+    label: "Cross-border"
+    score: 30
+    terms:
+      - "역직구"
+      - "직구"
+      - "크로스보더"
+      - "해외배송"
+      - "글로벌셀러"
+
+# ============================================
+# Bonus Rules
+# ============================================
+bonuses:
+  recent_article:
+    label: "24h Recent"
+    score: 25
+    condition: "published_within_hours < 24"
+
+  has_numbers:
+    label: "Concrete Data"
+    score: 15
+    patterns:
+      - "\\d+억"
+      - "\\d+%"
+      - "\\d+만"
+
+  earnings:
+    label: "Earnings Report"
+    score: 20
+    keywords:
+      - "실적"
+      - "분기"
+      - "영업이익"
+      - "흑자전환"
+
+# ============================================
+# Penalty Rules
+# ============================================
+penalties:
+  promotion:
+    label: "Promotional"
+    score: -50
+    threshold: 2
+    keywords:
+      - "할인"
+      - "쿠폰"
+      - "세일"
+      - "특가"
+      - "최저가"
+      - "적립"
+
+  product_review:
+    label: "Product Review"
+    score: -30
+    keywords:
+      - "추천"
+      - "베스트"
+      - "인기상품"
+      - "후기"
+
+  politics:
+    label: "Political"
+    score: -500
+    threshold: 1
+    keywords:
+      - "대통령"
+      - "국회"
+      - "기소"
+      - "구속"
+
+  old_article:
+    label: "Old Article"
+    score: -40
+    condition: "published_days_ago >= 2"
+
+# ============================================
+# Search Queries
+# ============================================
+search_queries:
+  - "쿠팡"
+  - "이커머스"
+  - "온라인쇼핑"
+  - "네이버쇼핑"
+  - "무신사"
+  - "마켓컬리"
+  - "풀필먼트"
+  - "새벽배송"
+  - "플랫폼 규제"
+
+# ============================================
+# News Sources
+# ============================================
+sources:
+  - type: google_news
+    language: ko
+    region: KR
+    results_per_query: 10
+
+# ============================================
+# Output Settings
+# ============================================
+output:
+  top_articles: 10
+  top_detailed: 3
+  summary_length: 100
+
+  email:
+    enabled: true
+    subject_template: "{profile_name} 뉴스 브리핑 - {date}"
+    recipients: []
+
+  diversity:
+    max_per_company: 2
+
+  history:
+    enabled: true
+    days_to_keep: 7

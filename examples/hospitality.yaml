@@ -1,0 +1,292 @@
+# Hospitality & Travel Tech Industry Profile
+# Template for hotels, OTAs, and travel technology companies
+
+profile:
+  name: "Hospitality & Travel Tech"
+  description: "News curator for B2B hospitality and travel technology industry"
+  language: ko
+  region: KR
+
+# ============================================
+# Company Tiers (higher tier = higher priority)
+# Customize with your company and competitors
+# ============================================
+companies:
+  tier_0:
+    label: "Our Company"
+    score: 80
+    keywords:
+      - "YourCompany"      # Replace with your company name
+      - "우리회사"          # Korean name
+
+  tier_1:
+    label: "Major Domestic OTAs"
+    score: 60
+    keywords:
+      - "야놀자"
+      - "Yanolja"
+      - "놀유니버스"
+      - "여기어때"
+      - "마이리얼트립"
+
+  tier_2:
+    label: "Domestic Platforms"
+    score: 50
+    keywords:
+      - "네이버"
+      - "카카오"
+      - "쏘카"
+      - "인터파크트리플"
+
+  tier_3:
+    label: "Global OTAs"
+    score: 50
+    keywords:
+      - "Airbnb"
+      - "에어비앤비"
+      - "Booking.com"
+      - "부킹닷컴"
+      - "Expedia"
+      - "익스피디아"
+      - "Trip.com"
+      - "트립닷컴"
+
+  tier_4:
+    label: "Metasearch"
+    score: 40
+    keywords:
+      - "Google Hotels"
+      - "TripAdvisor"
+      - "트립어드바이저"
+      - "Skyscanner"
+      - "Kayak"
+      - "Trivago"
+
+  tier_5:
+    label: "Hotel Chains"
+    score: 40
+    keywords:
+      - "Marriott"
+      - "메리어트"
+      - "Hilton"
+      - "힐튼"
+      - "Accor"
+      - "신라호텔"
+      - "롯데호텔"
+
+# ============================================
+# Keyword Categories
+# ============================================
+keywords:
+  investment:
+    label: "Investment/M&A"
+    score: 40
+    terms:
+      - "투자유치"
+      - "시리즈"
+      - "인수"
+      - "합병"
+      - "M&A"
+      - "펀딩"
+      - "IPO"
+      - "상장"
+
+  regulation:
+    label: "Regulation/Policy"
+    score: 45
+    terms:
+      - "규제"
+      - "법안"
+      - "허용"
+      - "금지"
+      - "단속"
+      - "합법화"
+      - "시행령"
+      - "개정"
+
+  accommodation_policy:
+    label: "Accommodation Policy"
+    score: 35
+    terms:
+      - "숙박업법"
+      - "공유숙박"
+      - "생활숙박"
+      - "숙박업 규제"
+      - "호텔업"
+
+  new_service:
+    label: "New Services"
+    score: 25
+    terms:
+      - "출시"
+      - "런칭"
+      - "오픈"
+      - "베타"
+      - "신규 서비스"
+      - "업데이트"
+
+  market_data:
+    label: "Market Data"
+    score: 30
+    terms:
+      - "매출"
+      - "영업이익"
+      - "성장률"
+      - "점유율"
+      - "거래액"
+      - "객실점유율"
+      - "ADR"
+      - "RevPAR"
+
+  industry:
+    label: "Industry Keywords"
+    score: 35
+    terms:
+      - "호스피탈리티"
+      - "숙박업"
+      - "숙박산업"
+      - "호텔산업"
+      - "PMS"
+      - "CMS"
+      - "GDS"
+      - "OTA"
+      - "채널매니저"
+
+# ============================================
+# Bonus Rules
+# ============================================
+bonuses:
+  recent_article:
+    label: "24h Recent"
+    score: 25
+    condition: "published_within_hours < 24"
+
+  has_numbers:
+    label: "Concrete Data"
+    score: 15
+    patterns:
+      - "\\d+억"
+      - "\\d+%"
+      - "\\d+만"
+
+  major_announcement:
+    label: "Major Announcement"
+    score: 15
+    keywords:
+      - "기자간담회"
+      - "기자회견"
+      - "신제품"
+      - "제휴"
+      - "MOU"
+
+  critical_news:
+    label: "Critical/Issue"
+    score: 30
+    keywords:
+      - "논란"
+      - "갑질"
+      - "과징금"
+      - "소송"
+      - "불공정"
+
+# ============================================
+# Penalty Rules
+# ============================================
+penalties:
+  promotion:
+    label: "Promotional Content"
+    score: -40
+    threshold: 2
+    keywords:
+      - "할인"
+      - "프로모션"
+      - "이벤트"
+      - "쿠폰"
+      - "특가"
+      - "세일"
+      - "경품"
+
+  local_government:
+    label: "Local Government"
+    score: -60
+    threshold: 2
+    keywords:
+      - "지자체"
+      - "도청"
+      - "시청"
+      - "군청"
+      - "도지사"
+      - "시장"
+      - "지역 관광"
+      - "지역 축제"
+
+  general_tourism:
+    label: "General Tourism (not accommodation)"
+    score: -15
+    keywords:
+      - "관광진흥"
+      - "관광정책"
+      - "K-관광"
+      - "인바운드"
+      - "관광객 유치"
+
+  politics:
+    label: "Political News"
+    score: -500
+    threshold: 1
+    keywords:
+      - "대통령"
+      - "국회의원"
+      - "여당"
+      - "야당"
+      - "기소"
+      - "구속"
+      - "탄핵"
+
+  old_article:
+    label: "Old Article (2+ days)"
+    score: -50
+    condition: "published_days_ago >= 2"
+
+# ============================================
+# Search Queries
+# ============================================
+search_queries:
+  - "야놀자"
+  - "여기어때"
+  - "에어비앤비 한국"
+  - "호텔 업계 뉴스"
+  - "숙박업"
+  - "숙박업 규제"
+  - "공유숙박"
+  - "트래블테크"
+  - "호스피탈리티 테크"
+
+# ============================================
+# News Sources
+# ============================================
+sources:
+  - type: google_news
+    language: ko
+    region: KR
+    results_per_query: 10
+
+# ============================================
+# Output Settings
+# ============================================
+output:
+  top_articles: 10
+  top_detailed: 3
+  summary_length: 100
+
+  email:
+    enabled: true
+    subject_template: "{profile_name} 뉴스 브리핑 - {date}"
+    recipients: []
+
+  diversity:
+    max_per_company: 1
+
+  history:
+    enabled: true
+    days_to_keep: 7

@@ -1,0 +1,234 @@
+# Fintech Industry News Curator Profile
+# Example for banking, payments, and crypto industry
+
+profile:
+  name: "Fintech & Banking"
+  description: "News curator for fintech, banking, and digital payments industry"
+  language: en
+  region: US
+
+# ============================================
+# Company Tiers
+# ============================================
+companies:
+  tier_0:
+    label: "Our Company"
+    score: 80
+    keywords:
+      - "YourFintech"
+
+  tier_1:
+    label: "Major Fintechs"
+    score: 60
+    keywords:
+      - "Stripe"
+      - "Square"
+      - "Block"
+      - "PayPal"
+      - "Adyen"
+      - "Klarna"
+      - "Affirm"
+
+  tier_2:
+    label: "Neobanks"
+    score: 55
+    keywords:
+      - "Chime"
+      - "Revolut"
+      - "N26"
+      - "Nubank"
+      - "Monzo"
+      - "Current"
+
+  tier_3:
+    label: "Traditional Banks (Digital)"
+    score: 45
+    keywords:
+      - "JPMorgan"
+      - "Goldman Sachs"
+      - "Bank of America"
+      - "Wells Fargo"
+      - "Citi"
+
+  tier_4:
+    label: "Crypto/Web3"
+    score: 40
+    keywords:
+      - "Coinbase"
+      - "Binance"
+      - "Kraken"
+      - "FTX"
+      - "OpenSea"
+
+  tier_5:
+    label: "Payment Networks"
+    score: 50
+    keywords:
+      - "Visa"
+      - "Mastercard"
+      - "American Express"
+      - "Discover"
+
+# ============================================
+# Keyword Categories
+# ============================================
+keywords:
+  investment:
+    label: "Funding/M&A"
+    score: 45
+    terms:
+      - "funding round"
+      - "Series A"
+      - "Series B"
+      - "Series C"
+      - "acquisition"
+      - "merger"
+      - "IPO"
+      - "SPAC"
+      - "valuation"
+
+  regulation:
+    label: "Regulation"
+    score: 50
+    terms:
+      - "SEC"
+      - "CFPB"
+      - "Federal Reserve"
+      - "regulation"
+      - "compliance"
+      - "license"
+      - "banking charter"
+      - "crypto regulation"
+
+  product:
+    label: "Product/Feature"
+    score: 30
+    terms:
+      - "launches"
+      - "introduces"
+      - "new feature"
+      - "beta"
+      - "API"
+      - "integration"
+
+  market_data:
+    label: "Market Data"
+    score: 35
+    terms:
+      - "revenue"
+      - "profit"
+      - "growth"
+      - "market share"
+      - "transaction volume"
+      - "TPV"
+      - "ARR"
+      - "GMV"
+
+  industry:
+    label: "Industry Terms"
+    score: 25
+    terms:
+      - "fintech"
+      - "neobank"
+      - "digital banking"
+      - "BNPL"
+      - "embedded finance"
+      - "open banking"
+      - "PSD2"
+      - "real-time payments"
+
+# ============================================
+# Bonus Rules
+# ============================================
+bonuses:
+  recent_article:
+    label: "24h Recent"
+    score: 20
+    condition: "published_within_hours < 24"
+
+  earnings:
+    label: "Earnings Report"
+    score: 25
+    keywords:
+      - "earnings"
+      - "quarterly results"
+      - "Q1"
+      - "Q2"
+      - "Q3"
+      - "Q4"
+      - "fiscal year"
+
+  breaking:
+    label: "Breaking News"
+    score: 20
+    keywords:
+      - "breaking"
+      - "exclusive"
+      - "just announced"
+
+# ============================================
+# Penalty Rules
+# ============================================
+penalties:
+  sponsored:
+    label: "Sponsored/Promotional"
+    score: -50
+    keywords:
+      - "sponsored"
+      - "partner content"
+      - "advertisement"
+      - "promo code"
+
+  opinion:
+    label: "Opinion Pieces"
+    score: -20
+    keywords:
+      - "opinion"
+      - "editorial"
+      - "why I think"
+
+  old_article:
+    label: "Old Article"
+    score: -40
+    condition: "published_days_ago >= 3"
+
+# ============================================
+# Search Queries
+# ============================================
+search_queries:
+  - "fintech news"
+  - "digital banking"
+  - "payment technology"
+  - "neobank"
+  - "BNPL buy now pay later"
+  - "open banking API"
+  - "crypto regulation"
+
+# ============================================
+# News Sources
+# ============================================
+sources:
+  - type: google_news
+    language: en
+    region: US
+    results_per_query: 15
+
+# ============================================
+# Output Settings
+# ============================================
+output:
+  top_articles: 10
+  top_detailed: 3
+  summary_length: 150
+
+  email:
+    enabled: true
+    subject_template: "{profile_name} Daily Brief - {date}"
+    recipients: []
+
+  diversity:
+    max_per_company: 2
+
+  history:
+    enabled: true
+    days_to_keep: 7

@@ -1,0 +1,249 @@
+# AI & Tech Industry Profile
+# Template for AI startups, big tech, and SaaS companies
+
+profile:
+  name: "AI & Tech"
+  description: "News curator for AI, big tech, and technology startups"
+  language: ko
+  region: KR
+
+# ============================================
+# Company Tiers
+# ============================================
+companies:
+  tier_0:
+    label: "Our Company"
+    score: 80
+    keywords:
+      - "YourCompany"
+      - "우리회사"
+
+  tier_1:
+    label: "Global AI Leaders"
+    score: 65
+    keywords:
+      - "OpenAI"
+      - "Anthropic"
+      - "Google DeepMind"
+      - "딥마인드"
+      - "xAI"
+
+  tier_2:
+    label: "Big Tech"
+    score: 60
+    keywords:
+      - "Google"
+      - "구글"
+      - "Microsoft"
+      - "마이크로소프트"
+      - "Apple"
+      - "애플"
+      - "Meta"
+      - "메타"
+      - "Amazon"
+      - "아마존"
+      - "Nvidia"
+      - "엔비디아"
+
+  tier_3:
+    label: "Korean AI/Tech"
+    score: 55
+    keywords:
+      - "네이버"
+      - "카카오"
+      - "삼성"
+      - "LG AI연구원"
+      - "뤼튼"
+      - "업스테이지"
+
+  tier_4:
+    label: "AI Startups"
+    score: 50
+    keywords:
+      - "Midjourney"
+      - "Stability AI"
+      - "Hugging Face"
+      - "허깅페이스"
+      - "Runway"
+      - "Character.AI"
+
+  tier_5:
+    label: "SaaS/Cloud"
+    score: 45
+    keywords:
+      - "Salesforce"
+      - "세일즈포스"
+      - "Slack"
+      - "슬랙"
+      - "Notion"
+      - "노션"
+      - "Figma"
+      - "피그마"
+
+# ============================================
+# Keyword Categories
+# ============================================
+keywords:
+  ai_models:
+    label: "AI Models"
+    score: 50
+    terms:
+      - "GPT"
+      - "Claude"
+      - "Gemini"
+      - "LLM"
+      - "생성형 AI"
+      - "대규모 언어모델"
+      - "파운데이션 모델"
+
+  investment:
+    label: "Investment/M&A"
+    score: 45
+    terms:
+      - "투자유치"
+      - "시리즈"
+      - "인수"
+      - "M&A"
+      - "IPO"
+      - "유니콘"
+      - "밸류에이션"
+
+  product:
+    label: "Product Launch"
+    score: 35
+    terms:
+      - "출시"
+      - "런칭"
+      - "베타"
+      - "API"
+      - "SDK"
+      - "오픈소스"
+
+  regulation:
+    label: "AI Regulation"
+    score: 40
+    terms:
+      - "AI 규제"
+      - "AI 윤리"
+      - "저작권"
+      - "개인정보"
+      - "AI 법"
+      - "EU AI Act"
+
+  research:
+    label: "Research"
+    score: 30
+    terms:
+      - "논문"
+      - "연구"
+      - "벤치마크"
+      - "성능"
+      - "파라미터"
+
+# ============================================
+# Bonus Rules
+# ============================================
+bonuses:
+  recent_article:
+    label: "24h Recent"
+    score: 30
+    condition: "published_within_hours < 24"
+
+  breaking:
+    label: "Breaking News"
+    score: 25
+    keywords:
+      - "발표"
+      - "공개"
+      - "최초"
+      - "돌파"
+      - "breaking"
+
+  funding:
+    label: "Major Funding"
+    score: 20
+    patterns:
+      - "\\d+억"
+      - "\\$\\d+"
+      - "시리즈"
+
+# ============================================
+# Penalty Rules
+# ============================================
+penalties:
+  tutorial:
+    label: "Tutorial/How-to"
+    score: -30
+    keywords:
+      - "사용법"
+      - "방법"
+      - "튜토리얼"
+      - "가이드"
+      - "how to"
+
+  opinion:
+    label: "Opinion Piece"
+    score: -20
+    keywords:
+      - "칼럼"
+      - "기고"
+      - "전망"
+      - "예측"
+
+  politics:
+    label: "Political"
+    score: -500
+    threshold: 1
+    keywords:
+      - "대통령"
+      - "국회"
+      - "기소"
+      - "구속"
+
+  old_article:
+    label: "Old Article"
+    score: -40
+    condition: "published_days_ago >= 2"
+
+# ============================================
+# Search Queries
+# ============================================
+search_queries:
+  - "생성형 AI"
+  - "OpenAI"
+  - "ChatGPT"
+  - "Claude AI"
+  - "AI 스타트업"
+  - "LLM"
+  - "AI 투자"
+  - "네이버 AI"
+  - "카카오 AI"
+
+# ============================================
+# News Sources
+# ============================================
+sources:
+  - type: google_news
+    language: ko
+    region: KR
+    results_per_query: 12
+
+# ============================================
+# Output Settings
+# ============================================
+output:
+  top_articles: 10
+  top_detailed: 3
+  summary_length: 100
+
+  email:
+    enabled: true
+    subject_template: "{profile_name} Daily Brief - {date}"
+    recipients: []
+
+  diversity:
+    max_per_company: 2
+
+  history:
+    enabled: true
+    days_to_keep: 7
