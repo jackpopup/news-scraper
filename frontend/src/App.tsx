@@ -5,6 +5,7 @@ import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import Onboarding from './pages/Onboarding'
+import ProfileSettings from './pages/ProfileSettings'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return authApi.isLoggedIn() ? <>{children}</> : <Navigate to="/login" />
@@ -34,6 +35,14 @@ function App() {
           element={
             <PrivateRoute>
               <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <PrivateRoute>
+              <ProfileSettings />
             </PrivateRoute>
           }
         />
