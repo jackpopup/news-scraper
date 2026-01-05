@@ -1,0 +1,48 @@
+name: Daily News Scrape
+
+on:
+  schedule:
+    # 평일 오전 8시 (KST) = UTC 23:00 (전날)
+    - cron: '0 23 * * 0-4'
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run scraper for all profiles
+        run: |
+          cd backend
+          python scrape_profile.py --all
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BKEND_API_KEY: ${{ secrets.BKEND_API_KEY }}
+          BKEND_SERVICE_URL: ${{ secrets.BKEND_SERVICE_URL }}
+
+      - name: Send email briefings
+        run: |
+          cd backend
+          python send_briefing.py --all
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GMAIL_EMAIL: ${{ secrets.GMAIL_EMAIL }}
+          GMAIL_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
+          BKEND_API_KEY: ${{ secrets.BKEND_API_KEY }}
+          BKEND_SERVICE_URL: ${{ secrets.BKEND_SERVICE_URL }}
