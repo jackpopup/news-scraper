@@ -112,8 +112,9 @@ class BkendAPIClient:
             'X-Environment': self.environment,
         }
         # API Key가 있으면 인증 헤더 추가 (admin/user 권한 획득)
+        # 주의: X-API-Key (API 대문자) - bkend.ai는 대소문자 구분함
         if self.api_key:
-            self.headers['X-Api-Key'] = self.api_key
+            self.headers['X-API-Key'] = self.api_key
 
     def _request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None) -> Dict:
         """Make HTTP request to bkend.ai"""

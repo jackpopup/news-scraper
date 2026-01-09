@@ -5,7 +5,7 @@
       "url": "https://api.bkend.ai/mcp",
       "headers": {
         "X-Organization-Id": "your-organization-id",
-        "X-Api-Key": "your-api-key"
+        "X-API-Key": "your-api-key"
       }
     }
   }
