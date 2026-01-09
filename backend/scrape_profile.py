@@ -11,7 +11,7 @@ import json
 import re
 import html
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from urllib.parse import quote, urlparse
@@ -34,6 +34,65 @@ if env_file.exists():
 
 
 # ============================================================
+# Scrape History Management (중복 기사 방지)
+# ============================================================
+
+HISTORY_FILE = Path(__file__).parent.parent / 'output' / 'scrape_history.json'
+HISTORY_DAYS = 7  # 7일간 히스토리 유지
+
+
+def load_scrape_history() -> Dict:
+    """스크랩 히스토리 로드"""
+    if not HISTORY_FILE.exists():
+        return {'articles': [], 'last_updated': None}
+
+    try:
+        with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
+            history = json.load(f)
+
+        # 오래된 항목 제거 (7일 이상)
+        cutoff = datetime.now() - timedelta(days=HISTORY_DAYS)
+        history['articles'] = [
+            a for a in history['articles']
+            if datetime.fromisoformat(a['scraped_at']) > cutoff
+        ]
+
+        return history
+    except Exception:
+        return {'articles': [], 'last_updated': None}
+
+
+def save_scrape_history(history: Dict):
+    """스크랩 히스토리 저장"""
+    history['last_updated'] = datetime.now().isoformat()
+    try:
+        HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"히스토리 저장 실패: {e}")
+
+
+def add_to_history(articles: List[Dict], history: Dict) -> Dict:
+    """스크랩한 기사를 히스토리에 추가"""
+    now = datetime.now().isoformat()
+    for article in articles:
+        history['articles'].append({
+            'title': article.get('title', ''),
+            'link': article.get('link', ''),
+            'scraped_at': now
+        })
+    return history
+
+
+# ============================================================
+# Untrusted Sources (신뢰할 수 없는 소스)
+# ============================================================
+
+UNTRUSTED_SOURCES = ['msn.com', 'nate.com']  # 날짜 검증 불가, 오래된 기사 재노출 문제
+
+
+# ============================================================
 # bkend.ai API Client
 # ============================================================
 
@@ -52,7 +111,9 @@ class BkendAPIClient:
             'X-Project-Id': self.project_id,
             'X-Environment': self.environment,
         }
-        # API Key는 enduser API에서 사용하지 않음
+        # API Key가 있으면 인증 헤더 추가 (admin/user 권한 획득)
+        if self.api_key:
+            self.headers['X-Api-Key'] = self.api_key
 
     def _request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None) -> Dict:
         """Make HTTP request to bkend.ai"""
@@ -586,8 +647,292 @@ class ProfileScoringEngine:
 
 
 # ============================================================
-# Deduplication
+# Deduplication (Enhanced with ONDA scraper features)
 # ============================================================
+
+# 불용어 (의미 없는 단어)
+STOPWORDS = {
+    '의', '를', '을', '이', '가', '은', '는', '에', '에서', '와', '과',
+    '로', '으로', '도', '만', '더', '등', '및', '또', '그', '저', '이런',
+    '것', '수', '중', '후', '전', '약', '각', '매', '내', '외', '상', '하',
+    '대', '소', '신', '구', '위', '아래', '앞', '뒤', '간', '별', '당',
+    '말', '년', '월', '일', '시', '분', '초', '명', '개', '곳', '번',
+    '절반', '이상', '최대', '최소', '약', '경험', '집중', '새해', '올해'
+}
+
+
+def has_same_core_keywords(title1: str, title2: str) -> bool:
+    """
+    두 제목이 같은 핵심 키워드를 공유하는지 확인
+    예: "해외숙박 예약 플랫폼 이용자 절반 이상 피해 경험"
+        "해외숙박 예약 플랫폼 이용자 54.6% 피해 경험"
+    -> 핵심 키워드: 해외숙박, 플랫폼, 이용자, 피해 -> 중복
+    """
+    def extract_keywords(title: str) -> set:
+        # 숫자와 % 제거
+        title_clean = re.sub(r'\d+\.?\d*%?', '', title)
+        # 특수문자 제거 (한글, 영문, 숫자만 남김)
+        title_clean = re.sub(r'[^\w\s가-힣]', ' ', title_clean)
+        # 단어 분리
+        words = title_clean.lower().split()
+        # 2글자 이상, 불용어 제외
+        keywords = set(w for w in words if len(w) >= 2 and w not in STOPWORDS)
+        return keywords
+
+    kw1 = extract_keywords(title1)
+    kw2 = extract_keywords(title2)
+
+    if not kw1 or not kw2:
+        return False
+
+    # 공통 키워드 비율 계산
+    common = kw1 & kw2
+    smaller_set = min(len(kw1), len(kw2))
+
+    # 작은 집합의 50% 이상이 공통이면 중복
+    if smaller_set > 0 and len(common) / smaller_set >= 0.5:
+        return True
+
+    # 핵심 주제 키워드가 3개 이상 공통이면 중복
+    if len(common) >= 3:
+        return True
+
+    return False
+
+
+def extract_article_topic(article: Dict) -> Dict:
+    """기사의 핵심 토픽 추출 (중복 판단용)"""
+    text = (article.get('title', '') + ' ' + article.get('summary', '')).lower()
+
+    # 금액 추출
+    amounts = re.findall(r'\d+억|\d+조|\d+만', text)
+
+    # 이벤트 타입 추출
+    event_type = None
+    if any(kw in text for kw in ['투자', '펀딩', '시리즈']):
+        event_type = 'investment'
+    elif any(kw in text for kw in ['인수', '합병', 'm&a']):
+        event_type = 'ma'
+    elif any(kw in text for kw in ['출시', '런칭', '오픈']):
+        event_type = 'launch'
+    elif any(kw in text for kw in ['실적', '매출', '영업이익']):
+        event_type = 'earnings'
+    elif any(kw in text for kw in ['규제', '법안', '허용', '금지']):
+        event_type = 'regulation'
+
+    return {
+        'amounts': amounts,
+        'event_type': event_type
+    }
+
+
+def is_same_story(article1: Dict, article2: Dict) -> bool:
+    """
+    두 기사가 같은 사건/스토리인지 판단
+    - 같은 회사 + 같은 이벤트 타입 = 같은 스토리
+    - 같은 회사 + 같은 금액 = 같은 스토리
+    """
+    topic1 = extract_article_topic(article1)
+    topic2 = extract_article_topic(article2)
+
+    # 회사명 추출 (company_matched가 있으면 사용)
+    company1 = article1.get('company_matched', '')
+    company2 = article2.get('company_matched', '')
+
+    # company_matched가 없으면 제목에서 추출
+    if not company1:
+        company1 = extract_main_entity(article1.get('title', ''))
+    if not company2:
+        company2 = extract_main_entity(article2.get('title', ''))
+
+    # 같은 회사 + 같은 이벤트 타입 = 같은 스토리
+    if company1 and company2 and company1.lower() == company2.lower():
+        if topic1['event_type'] == topic2['event_type'] and topic1['event_type'] is not None:
+            return True
+
+        # 같은 회사 + 같은 금액 = 같은 스토리
+        shared_amounts = set(topic1['amounts']) & set(topic2['amounts'])
+        if shared_amounts:
+            return True
+
+    # 제목의 공통 단어가 많으면 중복
+    title1 = article1.get('title', '').lower()
+    title2 = article2.get('title', '').lower()
+    words1 = set(re.sub(r'[^\w\s]', '', title1).split())
+    words2 = set(re.sub(r'[^\w\s]', '', title2).split())
+    common_words = words1 & words2
+    meaningful_common = common_words - STOPWORDS
+
+    # 같은 회사가 언급되고 공통 단어가 3개 이상이면 중복
+    if company1 and company1.lower() == company2.lower() and len(meaningful_common) >= 3:
+        return True
+
+    return False
+
+
+def is_already_scraped(article: Dict, history: Dict) -> bool:
+    """
+    이미 스크랩한 기사인지 확인
+    - 같은 링크
+    - 또는 제목 유사도 50% 이상
+    - 또는 핵심 키워드가 동일한 경우
+    """
+    for hist_article in history.get('articles', []):
+        # 같은 링크면 중복
+        if article.get('link') == hist_article.get('link'):
+            return True
+
+        # 제목 유사도 체크 (50% 이상이면 중복)
+        similarity = title_similarity(article.get('title', ''), hist_article.get('title', ''))
+        if similarity >= 0.5:
+            return True
+
+        # 핵심 키워드 기반 중복 체크
+        if has_same_core_keywords(article.get('title', ''), hist_article.get('title', '')):
+            return True
+
+    return False
+
+
+def filter_already_scraped(articles: List[Dict], history: Dict, silent: bool = False) -> List[Dict]:
+    """이미 스크랩한 기사 필터링"""
+    new_articles = []
+    skipped = 0
+
+    for article in articles:
+        if is_already_scraped(article, history):
+            skipped += 1
+        else:
+            new_articles.append(article)
+
+    if not silent and skipped > 0:
+        print(f"   -> 이전 스크랩 기사 {skipped}개 제외")
+
+    return new_articles
+
+
+def is_untrusted_source(link: str) -> bool:
+    """신뢰할 수 없는 소스인지 확인"""
+    link_lower = link.lower()
+    for source in UNTRUSTED_SOURCES:
+        if source in link_lower:
+            return True
+    return False
+
+
+def is_too_old_article(time_text: str) -> bool:
+    """
+    48시간(2일) 이상 지난 기사인지 체크
+    True면 너무 오래된 기사 (제외 대상)
+    """
+    if not time_text:
+        return False  # 시간 정보가 없으면 일단 통과
+
+    # 신선한 기사 마커 (통과)
+    fresh_markers = ['분 전', '시간 전', '1일 전', '1일전', '어제', '분', '시간']
+    for marker in fresh_markers:
+        if marker in time_text:
+            return False  # 신선한 기사
+
+    # 2일 이상 된 기사는 모두 제외
+    old_markers = ['2일', '3일', '4일', '5일', '6일', '7일', '주일', '주 전', '개월', '년 전']
+    for marker in old_markers:
+        if marker in time_text:
+            return True
+
+    return False  # 알 수 없는 형식이면 일단 통과
+
+
+def extract_actual_publish_date(url: str, timeout: int = 5) -> Optional[str]:
+    """
+    기사 URL에서 실제 발행일 추출 (메타태그/JSON-LD에서)
+    Returns: YYYY-MM-DD 형식 날짜 또는 None
+    """
+    from bs4 import BeautifulSoup
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 1. meta article:published_time (가장 신뢰할 수 있음)
+        meta = soup.find('meta', {'property': 'article:published_time'})
+        if meta and meta.get('content'):
+            return meta['content'][:10]
+
+        # 2. meta datePublished
+        meta = soup.find('meta', {'itemprop': 'datePublished'})
+        if meta and meta.get('content'):
+            return meta['content'][:10]
+
+        # 3. JSON-LD structured data
+        for script in soup.find_all('script', type='application/ld+json'):
+            try:
+                data = json.loads(script.text)
+                if isinstance(data, dict) and 'datePublished' in data:
+                    return data['datePublished'][:10]
+                if isinstance(data, list):
+                    for item in data:
+                        if isinstance(item, dict) and 'datePublished' in item:
+                            return item['datePublished'][:10]
+            except:
+                pass
+
+        # 4. time 태그의 datetime 속성
+        time_tag = soup.find('time', datetime=True)
+        if time_tag:
+            return time_tag['datetime'][:10]
+
+        # 5. URL에서 날짜 패턴 추출 (fallback)
+        date_patterns = [
+            r'/(\d{4})/(\d{2})/(\d{2})/',
+            r'/(\d{4})(\d{2})(\d{2})',
+            r'[=/](\d{4})-(\d{2})-(\d{2})',
+            r'[=/](\d{4})\.(\d{2})\.(\d{2})',
+        ]
+        for pattern in date_patterns:
+            match = re.search(pattern, url)
+            if match:
+                return f'{match.group(1)}-{match.group(2)}-{match.group(3)}'
+
+        return None
+    except Exception:
+        return None
+
+
+def verify_article_freshness(article: Dict, max_days: int = 2) -> tuple:
+    """
+    기사의 실제 발행일을 확인하여 신선도 검증
+
+    Args:
+        article: 기사 dict (link 필드 필요)
+        max_days: 허용할 최대 일수 (기본 2일)
+
+    Returns:
+        tuple: (is_fresh: bool, actual_date: str or None)
+    """
+    url = article.get('link', '')
+    if not url:
+        return True, None
+
+    actual_date = extract_actual_publish_date(url)
+    if not actual_date:
+        return True, None  # 날짜를 못 찾으면 일단 통과
+
+    try:
+        pub_date = datetime.strptime(actual_date, '%Y-%m-%d')
+        days_old = (datetime.now() - pub_date).days
+
+        article['actual_publish_date'] = actual_date
+        article['days_old'] = days_old
+
+        return days_old <= max_days, actual_date
+    except:
+        return True, actual_date
+
 
 def extract_main_entity(title: str) -> str:
     """제목에서 주요 엔티티(인물/회사명) 추출"""
@@ -659,8 +1004,13 @@ def entities_match(entity1: str, entity2: str) -> bool:
     return False
 
 
-def deduplicate_articles(articles: List[Dict], threshold: float = 0.5) -> List[Dict]:
-    """중복 기사 제거 (엔티티 기반 + 텍스트 유사도)"""
+def deduplicate_articles(articles: List[Dict], threshold: float = 0.35) -> List[Dict]:
+    """
+    중복 기사 제거 (강화된 버전)
+    - 엔티티 기반 + 텍스트 유사도
+    - 같은 스토리 판단 (회사+이벤트, 회사+금액)
+    - 핵심 키워드 공유 체크
+    """
     unique = []
 
     for article in articles:
@@ -681,14 +1031,31 @@ def deduplicate_articles(articles: List[Dict], threshold: float = 0.5) -> List[D
             existing_title = existing.get('title', '')
             existing_entity = extract_main_entity(existing_title)
 
-            # 2. 엔티티 매칭 체크 - 같은 주체면 낮은 임계값 적용
+            # 2. 같은 스토리인지 체크 (회사+이벤트 또는 회사+금액)
+            if is_same_story(article, existing):
+                is_dup = True
+                # 점수가 더 높은 것 유지
+                if article.get('final_score', 0) > existing.get('final_score', 0):
+                    unique.remove(existing)
+                    unique.append(article)
+                break
+
+            # 3. 핵심 키워드 공유 체크
+            if has_same_core_keywords(title, existing_title):
+                is_dup = True
+                if article.get('final_score', 0) > existing.get('final_score', 0):
+                    unique.remove(existing)
+                    unique.append(article)
+                break
+
+            # 4. 엔티티 매칭 체크 - 같은 주체면 낮은 임계값 적용
             entity_match = entities_match(current_entity, existing_entity)
             effective_threshold = 0.25 if entity_match else threshold
 
-            # 3. 제목 유사도 체크
+            # 5. 제목 유사도 체크
             title_sim = title_similarity(title, existing_title)
 
-            # 4. 요약(내용) 유사도도 함께 체크
+            # 6. 요약(내용) 유사도도 함께 체크
             existing_summary = existing.get('summary', '')
             if summary and existing_summary:
                 summary_sim = title_similarity(summary, existing_summary)
@@ -697,7 +1064,7 @@ def deduplicate_articles(articles: List[Dict], threshold: float = 0.5) -> List[D
             else:
                 combined_sim = title_sim
 
-            # 5. 엔티티 매칭 시 추가 보너스 (같은 주체면 유사도 +20%)
+            # 7. 엔티티 매칭 시 추가 보너스 (같은 주체면 유사도 +20%)
             if entity_match:
                 combined_sim = min(1.0, combined_sim + 0.2)
 
@@ -829,7 +1196,12 @@ def scrape_profile(profile_id: str, silent: bool = False):
     # 4. 기존 기사 링크 조회 (중복 방지)
     existing_links = set(client.get_existing_articles(profile_id))
     if not silent:
-        print(f"[Step 3] Existing articles: {len(existing_links)}\n")
+        print(f"[Step 3] Existing articles in DB: {len(existing_links)}")
+
+    # 4-1. 로컬 히스토리 로드 (7일간 스크랩 기록)
+    history = load_scrape_history()
+    if not silent:
+        print(f"   -> Local history: {len(history.get('articles', []))} articles\n")
 
     # 5. 뉴스 소스 설정
     filters = profile.get('filters', {})
@@ -857,12 +1229,23 @@ def scrape_profile(profile_id: str, silent: bool = False):
 
             try:
                 articles = scraper.search(query)
+                initial_count = len(articles)
+
                 # 기존 링크 제외
                 articles = [a for a in articles if a.link not in existing_links]
+
+                # 신뢰할 수 없는 소스 제외
+                articles = [a for a in articles if not is_untrusted_source(a.link)]
+
+                # 48시간 이상 된 기사 제외
+                articles = [a for a in articles if not is_too_old_article(a.time_text)]
+
                 all_articles.extend(articles)
 
                 if not silent:
-                    print(f" -> {len(articles)} articles")
+                    filtered = initial_count - len(articles)
+                    filter_info = f" (filtered {filtered})" if filtered > 0 else ""
+                    print(f" -> {len(articles)} articles{filter_info}")
             except Exception as e:
                 if not silent:
                     print(f" -> Error: {e}")
@@ -881,21 +1264,30 @@ def scrape_profile(profile_id: str, silent: bool = False):
     scoring_engine = ProfileScoringEngine(profile)
     scored_articles = [scoring_engine.score_article(a) for a in all_articles]
 
-    # 8. 중복 제거
+    # 8. 히스토리 기반 중복 제거 (이전 스크랩 기록과 비교)
     if not silent:
-        print("[Step 6] Removing duplicates...")
+        print("[Step 6] Checking against history...")
+
+    before_history = len(scored_articles)
+    scored_articles = filter_already_scraped(scored_articles, history, silent=silent)
+    if not silent and before_history > len(scored_articles):
+        print(f"   -> After history filter: {len(scored_articles)} articles")
+
+    # 9. 세션 내 중복 제거 (같은 스토리, 핵심 키워드 공유 등)
+    if not silent:
+        print("[Step 7] Removing duplicates (same story, keywords)...")
 
     unique_articles = deduplicate_articles(scored_articles)
 
     if not silent:
         print(f"   -> Unique articles: {len(unique_articles)}\n")
 
-    # 9. 점수순 정렬
+    # 10. 점수순 정렬
     sorted_articles = sorted(unique_articles, key=lambda x: x.get('final_score', 0), reverse=True)
 
-    # 10. bkend.ai에 저장
+    # 11. bkend.ai에 저장
     if not silent:
-        print("[Step 7] Saving to bkend.ai...")
+        print("[Step 8] Saving to bkend.ai...")
 
     now = datetime.now().isoformat()
     saved = 0
@@ -929,22 +1321,39 @@ def scrape_profile(profile_id: str, silent: bool = False):
     # 로컬 파일로도 저장 (백업 및 테이블 미생성 시 대비)
     output_dir = Path(__file__).parent.parent / 'output'
     output_dir.mkdir(exist_ok=True)
+
+    # 날짜 포함 파일 (히스토리용)
     output_file = output_dir / f"articles_{profile_id[:8]}_{now[:10]}.json"
 
+    # 프로필별 최신 파일 (프론트엔드용) - 항상 같은 이름으로 덮어씀
+    latest_file = output_dir / f"articles_{profile_id}.json"
+
+    article_data_output = {
+        'profile_id': profile_id,
+        'profile_name': profile_name,
+        'scraped_at': now,
+        'total_articles': len(articles_to_save),
+        'articles': articles_to_save
+    }
+
     with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump({
-            'profile_id': profile_id,
-            'profile_name': profile_name,
-            'scraped_at': now,
-            'total_articles': len(articles_to_save),
-            'articles': articles_to_save
-        }, f, ensure_ascii=False, indent=2)
+        json.dump(article_data_output, f, ensure_ascii=False, indent=2)
+
+    # 프로필별 최신 파일도 저장
+    with open(latest_file, 'w', encoding='utf-8') as f:
+        json.dump(article_data_output, f, ensure_ascii=False, indent=2)
 
     if not silent:
         print(f"   -> Saved to bkend.ai: {saved} articles")
         print(f"   -> Saved to file: {output_file}\n")
 
-    # 11. 결과 출력
+    # 12. 히스토리에 추가 및 저장
+    history = add_to_history(articles_to_save, history)
+    save_scrape_history(history)
+    if not silent:
+        print(f"[Step 9] Updated scrape history: {len(history.get('articles', []))} articles\n")
+
+    # 13. 결과 출력
     if not silent:
         print("=" * 60)
         print(f"TOP 10 Articles")

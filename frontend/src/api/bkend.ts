@@ -225,7 +225,11 @@ export const dataApi = {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async getProfiles() {
-    return request<{ success: boolean; data?: { items: Profile[] } }>('/data/profiles')
+    // selfFilters를 사용하여 로그인한 사용자의 프로필만 가져옴
+    // bkend.ai에서 createdBy가 현재 사용자와 일치하는 것만 반환
+    const params = new URLSearchParams()
+    params.append('selfFilters', JSON.stringify({ createdBy: true }))
+    return request<{ success: boolean; data?: { items: Profile[] } }>(`/data/profiles?${params.toString()}`)
   },
 
   async getProfile(profileId: string) {

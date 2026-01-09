@@ -320,46 +320,67 @@ export default function Dashboard() {
     }
   }
 
-  const loadArticlesFromLocal = async (_profileId: string) => {
+  const loadArticlesFromLocal = async (profileId: string) => {
     try {
-      console.log('Fetching /data/articles.json...')
-      const response = await fetch('/data/articles.json')
-      console.log('Response status:', response.status)
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Local data loaded:', data.total_articles, 'articles')
-        if (data.articles && data.articles.length > 0) {
-          // 기사 링크를 기반으로 고유한 ID 생성 (새로고침해도 동일한 ID 유지)
-          const generateArticleId = (link: string, title: string) => {
-            const str = link || title
-            let hash = 0
-            for (let i = 0; i < str.length; i++) {
-              const char = str.charCodeAt(i)
-              hash = ((hash << 5) - hash) + char
-              hash = hash & hash // Convert to 32bit integer
-            }
-            return `article-${Math.abs(hash)}`
-          }
+      // 프로필별 JSON 파일 먼저 시도, 없으면 기본 파일로 fallback
+      const filesToTry = [
+        `/data/articles_${profileId}.json`,  // 프로필별 파일
+        '/data/articles.json'                 // 기본 fallback
+      ]
 
-          const localArticles = data.articles.map((a: any) => ({
-            id: generateArticleId(a.link, a.title),
-            title: a.title,
-            source: a.source,
-            time: a.time_text || '방금 전',
-            relevance: a.final_score,
-            link: a.link,
-            matchedCompany: a.company_matched || '',
-            matchedKeywords: a.bonus_breakdown?.map((b: any) => b.keyword) || [],
-            scoreBreakdown: {
-              company: a.company_score || 0,
-              bonus: a.bonus_score || 0,
-              penalty: a.penalty_score || 0,
-            },
-          }))
-          console.log('Setting articles:', localArticles.length)
-          setArticles(localArticles)
+      for (const filePath of filesToTry) {
+        console.log(`Trying to fetch ${filePath}...`)
+        try {
+          const response = await fetch(filePath)
+          if (response.ok) {
+            const data = await response.json()
+            console.log(`Local data loaded from ${filePath}:`, data.total_articles, 'articles')
+
+            // 프로필 ID가 일치하는지 확인 (다른 사용자의 파일 로드 방지)
+            if (data.profile_id && data.profile_id !== profileId && filePath !== '/data/articles.json') {
+              console.log(`Profile ID mismatch: expected ${profileId}, got ${data.profile_id}`)
+              continue
+            }
+
+            if (data.articles && data.articles.length > 0) {
+              // 기사 링크를 기반으로 고유한 ID 생성 (새로고침해도 동일한 ID 유지)
+              const generateArticleId = (link: string, title: string) => {
+                const str = link || title
+                let hash = 0
+                for (let i = 0; i < str.length; i++) {
+                  const char = str.charCodeAt(i)
+                  hash = ((hash << 5) - hash) + char
+                  hash = hash & hash // Convert to 32bit integer
+                }
+                return `article-${Math.abs(hash)}`
+              }
+
+              const localArticles = data.articles.map((a: any) => ({
+                id: generateArticleId(a.link, a.title),
+                title: a.title,
+                source: a.source,
+                time: a.time_text || '방금 전',
+                relevance: a.final_score,
+                link: a.link,
+                matchedCompany: a.company_matched || '',
+                matchedKeywords: a.bonus_breakdown?.map((b: any) => b.keyword) || [],
+                scoreBreakdown: {
+                  company: a.company_score || 0,
+                  bonus: a.bonus_score || 0,
+                  penalty: a.penalty_score || 0,
+                },
+              }))
+              console.log('Setting articles:', localArticles.length)
+              setArticles(localArticles)
+              return // 성공하면 종료
+            }
+          }
+        } catch (e) {
+          console.log(`Failed to load ${filePath}:`, e)
         }
       }
+
+      console.log('No articles files found')
     } catch (error) {
       console.error('Failed to load local articles:', error)
     }
