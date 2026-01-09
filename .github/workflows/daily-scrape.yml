@@ -2,8 +2,10 @@ name: Daily News Scrape
 
 on:
   schedule:
-    # 평일 오전 7시 (KST) = UTC 22:00 (전날)
-    - cron: '0 22 * * 0-4'
+    # 하루 3회: 06:00, 12:00, 18:00 KST
+    - cron: '0 21 * * *'   # 06:00 KST = 21:00 UTC (전날)
+    - cron: '0 3 * * *'    # 12:00 KST = 03:00 UTC
+    - cron: '0 9 * * *'    # 18:00 KST = 09:00 UTC
   workflow_dispatch:  # 수동 실행 가능
     inputs:
       profile:
