@@ -91,9 +91,9 @@ jobs:
         run: |
           cd backend
           if [ -n "${{ github.event.inputs.profile }}" ]; then
-            python send_briefing.py --profile "${{ github.event.inputs.profile }}"
+            python send_briefing.py --to "$GMAIL_EMAIL" --profile "${{ github.event.inputs.profile }}"
           else
-            python send_briefing.py --all
+            python send_briefing.py --to "$GMAIL_EMAIL"
           fi
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
