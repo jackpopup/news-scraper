@@ -86,6 +86,32 @@ jobs:
           BKEND_SERVICE_URL: ${{ secrets.BKEND_SERVICE_URL }}
           BKEND_PROJECT_ID: ${{ secrets.BKEND_PROJECT_ID }}
 
+      - name: Update frontend articles.json
+        run: |
+          # 가장 최신 articles 파일을 frontend/public/data/에 복사
+          LATEST_FILE=$(ls -t output/articles_*.json 2>/dev/null | head -1)
+          if [ -n "$LATEST_FILE" ]; then
+            echo "Copying $LATEST_FILE to frontend/public/data/articles.json"
+            mkdir -p frontend/public/data
+            cp "$LATEST_FILE" frontend/public/data/articles.json
+          else
+            echo "No articles file found in output/"
+          fi
+
+      - name: Commit and push articles update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/data/articles.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: Update articles.json from daily scrape
+
+            🤖 Generated with GitHub Actions"
+            git push
+          fi
+
       - name: Send email briefings
         if: github.event.inputs.skip_email != 'true'
         run: |
