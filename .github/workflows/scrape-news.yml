@@ -1,0 +1,41 @@
+name: News Scraper
+
+on:
+  schedule:
+    # KST 07:00 = UTC 22:00 (previous day)
+    - cron: '0 22 * * *'
+    # KST 13:00 = UTC 04:00
+    - cron: '0 4 * * *'
+    # KST 18:00 = UTC 09:00
+    - cron: '0 9 * * *'
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run news scraper
+        env:
+          BKEND_SERVICE_URL: ${{ secrets.BKEND_SERVICE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cd backend
+          python main.py --profile ../examples/hospitality.yaml --save-bknd --profile-id default --silent
+
+      - name: Log completion
+        run: |
+          echo "News scraping completed at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
