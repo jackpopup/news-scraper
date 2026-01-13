@@ -31,7 +31,10 @@ jobs:
       - name: Run news scraper
         env:
           BKEND_SERVICE_URL: ${{ secrets.BKEND_SERVICE_URL }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          BKEND_API_KEY: ${{ secrets.BKEND_API_KEY }}
+          BKEND_PROJECT_ID: ${{ secrets.BKEND_PROJECT_ID }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
         run: |
           cd backend
           python main.py --profile ../examples/hospitality.yaml --save-bknd --profile-id default --silent
